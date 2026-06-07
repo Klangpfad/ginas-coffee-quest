@@ -1,0 +1,127 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gina's Coffee Quest 3.0</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game-shell">
+    <img class="side-art side-art-left" src="gina-cup-side.png" alt="" aria-hidden="true">
+    <img class="side-art side-art-right" src="gina-server-side.png" alt="" aria-hidden="true">
+    <aside class="side-highscore" aria-live="polite">
+      <div class="side-highscore-label">🏆 Highscore</div>
+      <div id="sideHighscoreValue" class="side-highscore-value">0 Punkte</div>
+      <div class="side-medal-label">Beste Auszeichnung:</div>
+      <div id="sideBestMedalValue" class="side-medal-value">☕ Kaffee-Neuling</div>
+    </aside>
+
+    <div class="topbar">
+      <h1>Gina's Coffee Quest <span class="version">3.0</span></h1>
+      <div class="hud" aria-live="polite">
+        <span id="score">Score: 0</span>
+        <span id="time">Zeit: 60</span>
+        <span id="lives" aria-label="Leben">♥♥♥</span>
+        <span id="coffeeCount" class="wide">Kaffee: 0</span>
+        <span id="cookieCount" class="wide">Cookies: 0</span>
+        <span id="powerStatus" class="wide">Power: -</span>
+        <button id="musicButton" type="button" aria-label="Musik ein- oder ausschalten">♪ Aus</button>
+      </div>
+    </div>
+
+    <section class="stage" aria-label="Gina's Coffee Quest Spielbereich">
+      <canvas id="game" width="900" height="600"></canvas>
+
+      <div id="loadingScreen" class="overlay">
+        <div class="screen">
+          <div class="logo">G</div>
+          <h2>Gina sucht Server-Snacks...</h2>
+          <div class="loading-bar" aria-hidden="true"><div class="loading-fill"></div></div>
+          <p id="loadingTip" class="tip">Kaffee erhöht die Administrator-Stabilität.</p>
+        </div>
+      </div>
+
+      <div id="startScreen" class="overlay hidden">
+        <div class="screen">
+          <div class="start-preview" aria-hidden="true">
+            <span class="preview-item coffee"></span>
+            <span class="preview-item cookie"></span>
+            <span class="preview-item chip"></span>
+            <span class="preview-item bug"></span>
+          </div>
+          <div class="logo">G</div>
+          <h2>Gina's Coffee Quest 3.0</h2>
+          <p>Sammle Snacks und Power-Ups. Rote Bugs kosten Herzen.</p>
+          <div class="score-list">
+            <div>☕ Kaffee<br />+10</div>
+            <div>🍪 Keks<br />+25</div>
+            <div>CPU-Chip<br />+50</div>
+            <div>Goldkaffee<br />2x Punkte</div>
+            <div>Heiligenschein<br />Schutz</div>
+            <div>Turbo<br />Tempo</div>
+          </div>
+          <p class="hint">Steuerung: Pfeiltasten, WASD oder Touch. Pause: P.</p>
+          <div class="button-row">
+            <button id="startButton" type="button">Spiel starten</button>
+            <button id="startMusicButton" class="secondary" type="button">Musik an</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="countdownScreen" class="overlay countdown-overlay hidden">
+        <div id="countdownValue" class="countdown-value">3</div>
+      </div>
+
+      <div id="pauseScreen" class="overlay hidden">
+        <div class="screen">
+          <h2>Pause</h2>
+          <p>Gina sortiert kurz die Kaffeefilter.</p>
+          <p class="hint">Drücke P oder klicke weiter.</p>
+          <button id="resumeButton" type="button">Weiter</button>
+        </div>
+      </div>
+
+      <div id="gameOverScreen" class="overlay hidden">
+        <div class="screen">
+          <h2>Game Over</h2>
+          <p id="finalRank" class="final-rank">Kaffeepause</p>
+          <div class="final-medal">
+            <div>Auszeichnung erhalten:</div>
+            <strong id="finalMedal">☕ Kaffee-Neuling</strong>
+          </div>
+          <p id="finalScore">Endstand: 0</p>
+          <p id="finalHighscore">Highscore: 0</p>
+          <p id="gameOverMessage" class="hint">Gina behauptet, der Bug war nur Deko.</p>
+          <div class="stats-grid">
+            <div id="finalCoffee">Gesammelte Kaffees: 0</div>
+            <div id="finalCookies">Gesammelte Cookies: 0</div>
+            <div id="finalSurvival">Überlebte Zeit: 0s</div>
+            <div id="finalCombo">Beste Combo: x0</div>
+            <div id="finalNearMiss">Knapp vorbei: 0</div>
+            <div id="finalBest">Bestes Ergebnis aller Zeiten: 0</div>
+          </div>
+          <div class="button-row">
+            <button id="restartButton" type="button">Neu starten</button>
+            <button id="resetHighscoreButton" class="secondary subtle" type="button">Highscore löschen</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+      <div id="powerStrip" class="power-strip" aria-live="polite"></div>
+
+      <div class="touch-controls" aria-label="Touch-Steuerung">
+        <button data-dir="up" type="button" aria-label="Nach oben">▲</button>
+        <button data-dir="left" type="button" aria-label="Nach links">◀</button>
+        <button data-dir="right" type="button" aria-label="Nach rechts">▶</button>
+        <button data-dir="down" type="button" aria-label="Nach unten">▼</button>
+      </div>
+    </section>
+
+    <footer class="credit-footer">☕ Powered by Tom &amp; Gina <span class="footer-heart">❤</span></footer>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
