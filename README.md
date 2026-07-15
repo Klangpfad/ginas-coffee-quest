@@ -40,7 +40,7 @@ Collect coffee, cookies and power-ups, avoid bugs, build combos and unlock medal
 
 ## Play Online
 
-https://klangpfad.github.io/ginas-coffee-quest/
+https://runlevel-labs.github.io/ginas-coffee-quest/
 
 ## Credits
 
