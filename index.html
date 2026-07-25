@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gina's Coffee Quest 3.0</title>
+  <title>Gina's Coffee Quest 3.3</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,10 +15,13 @@
       <div id="sideHighscoreValue" class="side-highscore-value">0 Punkte</div>
       <div class="side-medal-label">Beste Auszeichnung:</div>
       <div id="sideBestMedalValue" class="side-medal-value">☕ Kaffee-Neuling</div>
+      <button id="achievementsButton" class="achievement-overview-button" type="button" disabled>
+        🏅 Erfolge 0/5
+      </button>
     </aside>
 
     <div class="topbar">
-      <h1>Gina's Coffee Quest <span class="version">3.0</span></h1>
+      <h1>Gina's Coffee Quest <span class="version">3.3</span></h1>
       <div class="hud" aria-live="polite">
         <span id="score">Score: 0</span>
         <span id="time">Zeit: 60</span>
@@ -26,6 +29,7 @@
         <span id="coffeeCount" class="wide">Kaffee: 0</span>
         <span id="cookieCount" class="wide">Cookies: 0</span>
         <span id="powerStatus" class="wide">Power: -</span>
+        <span id="medalProgress" class="wide medal-progress">🥉 0/500 bis Kaffee-Azubi</span>
         <button id="musicButton" type="button" aria-label="Musik ein- oder ausschalten">♪ Aus</button>
       </div>
     </div>
@@ -51,8 +55,8 @@
             <span class="preview-item bug"></span>
           </div>
           <div class="logo">G</div>
-          <h2>Gina's Coffee Quest 3.0</h2>
-          <p>Sammle Snacks und Power-Ups. Rote Bugs kosten Herzen.</p>
+          <h2>Gina's Coffee Quest 3.3</h2>
+          <p>Sammle Snacks und Power-Ups. Drei Bugtypen werden mit der Zeit gefährlicher.</p>
           <div class="score-list">
             <div>☕ Kaffee<br />+10</div>
             <div>🍪 Keks<br />+25</div>
@@ -61,7 +65,7 @@
             <div>Heiligenschein<br />Schutz</div>
             <div>Turbo<br />Tempo</div>
           </div>
-          <p class="hint">Steuerung: Pfeiltasten, WASD oder Touch. Pause: P.</p>
+          <p class="hint">Steuerung: Pfeiltasten, WASD oder mobiler Joystick. Pause: P.</p>
           <div class="button-row">
             <button id="startButton" type="button">Spiel starten</button>
             <button id="startMusicButton" class="secondary" type="button">Musik an</button>
@@ -99,7 +103,7 @@
             <div id="finalSurvival">Überlebte Zeit: 0s</div>
             <div id="finalCombo">Beste Combo: x0</div>
             <div id="finalNearMiss">Knapp vorbei: 0</div>
-            <div id="finalBest">Bestes Ergebnis aller Zeiten: 0</div>
+            <div id="finalBugsAvoided">Ausgewichene Bugs: 0</div>
           </div>
           <div class="button-row">
             <button id="restartButton" type="button">Neu starten</button>
@@ -108,14 +112,40 @@
         </div>
       </div>
 
+      <div id="achievementsScreen" class="overlay hidden">
+        <div class="screen achievements-screen">
+          <button
+            id="closeAchievementsButton"
+            class="achievement-close"
+            type="button"
+            aria-label="Achievement-Übersicht schließen"
+          >×</button>
+          <div class="achievement-heading-icon" aria-hidden="true">🏅</div>
+          <h2>Achievements</h2>
+          <p id="achievementSummary" class="achievement-summary">0 von 5 freigeschaltet</p>
+          <div id="achievementList" class="achievement-list"></div>
+          <div class="button-row achievement-actions">
+            <button id="resetAchievementsButton" class="secondary subtle" type="button">
+              Achievements zurücksetzen
+            </button>
+            <button id="closeAchievementsFooterButton" type="button">Schließen</button>
+          </div>
+        </div>
+      </div>
+
       <div id="toastStack" class="toast-stack" aria-live="polite"></div>
       <div id="powerStrip" class="power-strip" aria-live="polite"></div>
 
-      <div class="touch-controls" aria-label="Touch-Steuerung">
-        <button data-dir="up" type="button" aria-label="Nach oben">▲</button>
-        <button data-dir="left" type="button" aria-label="Nach links">◀</button>
-        <button data-dir="right" type="button" aria-label="Nach rechts">▶</button>
-        <button data-dir="down" type="button" aria-label="Nach unten">▼</button>
+      <div
+        id="touchJoystick"
+        class="touch-joystick"
+        aria-label="Virtueller Joystick"
+        data-input-x="0"
+        data-input-y="0"
+      >
+        <div id="joystickBase" class="joystick-base">
+          <div id="joystickKnob" class="joystick-knob"></div>
+        </div>
       </div>
     </section>
 

@@ -1,5 +1,8 @@
-﻿    // Gina's Coffee Quest 3.0 keeps everything in one file: canvas game, DOM menus, CSS and sound.
+﻿    // Gina's Coffee Quest 3.3 keeps everything in one file: canvas game, DOM menus, CSS and sound.
     const canvas = document.getElementById("game");
+    const useMobilePlayfield = window.matchMedia("(max-width: 720px)").matches;
+    canvas.width = useMobilePlayfield ? 600 : 900;
+    canvas.height = useMobilePlayfield ? 800 : 600;
     const ctx = canvas.getContext("2d");
     const ginaSprite = new Image();
     ginaSprite.src = "gina-sprite.png";
@@ -13,6 +16,7 @@
       coffeeCount: document.getElementById("coffeeCount"),
       cookieCount: document.getElementById("cookieCount"),
       powerStatus: document.getElementById("powerStatus"),
+      medalProgress: document.getElementById("medalProgress"),
       loading: document.getElementById("loadingScreen"),
       loadingTip: document.getElementById("loadingTip"),
       stage: document.querySelector(".stage"),
@@ -31,15 +35,25 @@
       finalSurvival: document.getElementById("finalSurvival"),
       finalCombo: document.getElementById("finalCombo"),
       finalNearMiss: document.getElementById("finalNearMiss"),
-      finalBest: document.getElementById("finalBest"),
+      finalBugsAvoided: document.getElementById("finalBugsAvoided"),
+      achievements: document.getElementById("achievementsScreen"),
+      achievementSummary: document.getElementById("achievementSummary"),
+      achievementList: document.getElementById("achievementList"),
       toastStack: document.getElementById("toastStack"),
       powerStrip: document.getElementById("powerStrip"),
+      touchJoystick: document.getElementById("touchJoystick"),
+      joystickBase: document.getElementById("joystickBase"),
+      joystickKnob: document.getElementById("joystickKnob"),
       musicButton: document.getElementById("musicButton"),
       startMusicButton: document.getElementById("startMusicButton"),
       startButton: document.getElementById("startButton"),
       resumeButton: document.getElementById("resumeButton"),
       restartButton: document.getElementById("restartButton"),
-      resetHighscoreButton: document.getElementById("resetHighscoreButton")
+      resetHighscoreButton: document.getElementById("resetHighscoreButton"),
+      resetAchievementsButton: document.getElementById("resetAchievementsButton"),
+      achievementsButton: document.getElementById("achievementsButton"),
+      closeAchievementsButton: document.getElementById("closeAchievementsButton"),
+      closeAchievementsFooterButton: document.getElementById("closeAchievementsFooterButton")
     };
 
     const WIDTH = canvas.width;
@@ -49,12 +63,15 @@
     const COMBO_SECONDS = 1.45;
     const NEAR_MISS_SCORE = 5;
     const NEAR_MISS_MARGIN = 24;
+    const BUG_THREAT_MARGIN = 90;
+    const BUG_DODGE_CLEAR_MARGIN = 150;
     const STORAGE_KEY = "ginaCoffeeQuestHighscore";
     const BEST_MEDAL_KEY = "ginaCoffeeQuestBestMedal";
     const LEGACY_HIGHSCORE_KEYS = ["ginaCoffeeHighscore", "ginasCoffeeQuestHighscore"];
     const ACHIEVEMENT_KEY = "ginasCoffeeQuestAchievements";
     const keys = new Set();
-    const touchKeys = new Set();
+    const joystickVector = { x: 0, y: 0 };
+    let joystickPointerId = null;
 
     const tips = [
       "Kaffee erhöht die Administrator-Stabilität.",
@@ -71,26 +88,107 @@
       turboCoffee: { score: 0, radius: 20, color: "#ff8ed6" }
     };
 
+    const bugTypes = {
+      standard: {
+        radius: 22,
+        minSpeed: 85,
+        maxSpeed: 145,
+        minLife: 6.5,
+        maxLife: 10.5,
+        color: "#ef4057",
+        glow: "rgba(239, 64, 87, 0.7)"
+      },
+      sprinter: {
+        radius: 16,
+        minSpeed: 155,
+        maxSpeed: 215,
+        minLife: 5,
+        maxLife: 7.5,
+        color: "#ff8a3d",
+        glow: "rgba(255, 138, 61, 0.72)"
+      },
+      hunter: {
+        radius: 25,
+        minSpeed: 72,
+        maxSpeed: 102,
+        minLife: 8,
+        maxLife: 12,
+        turnRate: 1.35,
+        color: "#a86dff",
+        glow: "rgba(168, 109, 255, 0.74)"
+      }
+    };
+
+    const difficultyStages = [
+      {
+        phase: 1,
+        startsAt: 0,
+        maxBugs: 6,
+        spawnMin: 1.65,
+        spawnMax: 2.25,
+        speedMultiplier: 0.95,
+        message: "Kaffeepause: Standard-Bugs unterwegs."
+      },
+      {
+        phase: 2,
+        startsAt: 20,
+        maxBugs: 8,
+        spawnMin: 1.15,
+        spawnMax: 1.7,
+        speedMultiplier: 1.08,
+        message: "Schicht 2: Sprinter und Jäger tauchen auf!"
+      },
+      {
+        phase: 3,
+        startsAt: 40,
+        maxBugs: 10,
+        spawnMin: 0.78,
+        spawnMax: 1.18,
+        speedMultiplier: 1.22,
+        message: "Alarmstufe Rot: Das System dreht auf!"
+      }
+    ];
+
     const achievements = {
       firstCoffee: {
+        icon: "☕",
         title: "Erste Tasse Kaffee",
+        description: "Sammle deinen ersten Kaffee in einer Runde.",
+        target: 1,
+        progress: () => stats.coffee,
         done: () => stats.coffee >= 1
       },
       cookieMaster: {
+        icon: "🍪",
         title: "Krümelmeister",
+        description: "Sammle 10 Cookies in einer Runde.",
+        target: 10,
+        progress: () => stats.cookies,
         done: () => stats.cookies >= 10
       },
       bugHunter: {
+        icon: "🐛",
         title: "Bug-Jäger",
+        description: "Weiche 20 bedrohlichen Bugs in einer Runde aus.",
+        target: 20,
+        progress: () => stats.bugsAvoided,
         done: () => stats.bugsAvoided >= 20
       },
       nightShift: {
+        icon: "🌙",
         title: "Nachtschicht",
-        done: () => score > 300
+        description: "Erreiche 300 Punkte in einer Runde.",
+        target: 300,
+        progress: () => score,
+        done: () => score >= 300
       },
       serverGuru: {
+        icon: "💻",
         title: "Server-Guru",
-        done: () => score > 500
+        description: "Erreiche 500 Punkte in einer Runde.",
+        target: 500,
+        progress: () => score,
+        done: () => score >= 500
       }
     };
 
@@ -141,6 +239,10 @@
     let lastPowerLabel = "";
     let newHighscoreAnnounced = false;
     let countdownTimeout = null;
+    let pausedFromState = "playing";
+    let lastDifficultyPhase = 1;
+    let lastRunMedal = medals[0];
+    let achievementReturnState = "start";
     let comboCount = 0;
     let comboTimer = 0;
     let stats = createEmptyStats();
@@ -170,14 +272,19 @@
     createStars();
     renderBestMedal();
     updateHud();
+    renderAchievementOverview();
     showLoadingScreen();
 
     ui.startButton.addEventListener("click", startGame);
     ui.restartButton.addEventListener("click", startGame);
     ui.resetHighscoreButton.addEventListener("click", resetHighscore);
+    ui.resetAchievementsButton.addEventListener("click", resetAchievements);
     ui.resumeButton.addEventListener("click", togglePause);
     ui.musicButton.addEventListener("click", toggleMusic);
     ui.startMusicButton.addEventListener("click", toggleMusic);
+    ui.achievementsButton.addEventListener("click", openAchievementOverview);
+    ui.closeAchievementsButton.addEventListener("click", closeAchievementOverview);
+    ui.closeAchievementsFooterButton.addEventListener("click", closeAchievementOverview);
 
     // Keyboard input supports arrows, WASD, Enter/Space for menus and P for pause.
     window.addEventListener("keydown", (event) => {
@@ -188,11 +295,20 @@
 
       keys.add(key);
 
-      if ((state === "start" || state === "gameover") && (key === "enter" || key === " ")) {
+      const buttonHasFocus = event.target && event.target.tagName === "BUTTON";
+      if (
+        (state === "start" || state === "gameover") &&
+        (key === "enter" || key === " ") &&
+        !buttonHasFocus
+      ) {
         startGame();
       }
 
-      if (key === "p" && (state === "playing" || state === "paused")) {
+      if (key === "escape" && state === "achievements") {
+        closeAchievementOverview();
+      }
+
+      if (key === "p" && (state === "countdown" || state === "playing" || state === "paused")) {
         togglePause();
       }
     });
@@ -201,22 +317,71 @@
       keys.delete(event.key.toLowerCase());
     });
 
-    // Small on-screen controls make the same game playable on touch devices.
-    document.querySelectorAll(".touch-controls button").forEach((button) => {
-      const dir = button.dataset.dir;
-      const start = (event) => {
-        event.preventDefault();
-        touchKeys.add(dir);
-      };
-      const end = (event) => {
-        event.preventDefault();
-        touchKeys.delete(dir);
-      };
-      button.addEventListener("pointerdown", start);
-      button.addEventListener("pointerup", end);
-      button.addEventListener("pointercancel", end);
-      button.addEventListener("pointerleave", end);
+    window.addEventListener("blur", pauseForInterruption);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) pauseForInterruption();
     });
+
+    // The virtual joystick supports smooth direction and speed on touch devices.
+    ui.touchJoystick.addEventListener("pointerdown", (event) => {
+      if (joystickPointerId !== null) return;
+
+      event.preventDefault();
+      joystickPointerId = event.pointerId;
+      ui.touchJoystick.classList.add("active");
+      ui.touchJoystick.setPointerCapture(event.pointerId);
+      updateJoystick(event.clientX, event.clientY);
+    });
+
+    ui.touchJoystick.addEventListener("pointermove", (event) => {
+      if (event.pointerId !== joystickPointerId) return;
+      event.preventDefault();
+      updateJoystick(event.clientX, event.clientY);
+    });
+
+    const endJoystickInput = (event) => {
+      if (event.pointerId !== joystickPointerId) return;
+      event.preventDefault();
+      resetJoystick();
+    };
+
+    ui.touchJoystick.addEventListener("pointerup", endJoystickInput);
+    ui.touchJoystick.addEventListener("pointercancel", endJoystickInput);
+    ui.touchJoystick.addEventListener("lostpointercapture", endJoystickInput);
+
+    function updateJoystick(clientX, clientY) {
+      const baseRect = ui.joystickBase.getBoundingClientRect();
+      const centerX = baseRect.left + baseRect.width / 2;
+      const centerY = baseRect.top + baseRect.height / 2;
+      const maxTravel = Math.max(1, baseRect.width / 2 - ui.joystickKnob.offsetWidth / 2 - 4);
+      let offsetX = clientX - centerX;
+      let offsetY = clientY - centerY;
+      const distance = Math.hypot(offsetX, offsetY);
+
+      if (distance > maxTravel) {
+        const scale = maxTravel / distance;
+        offsetX *= scale;
+        offsetY *= scale;
+      }
+
+      joystickVector.x = offsetX / maxTravel;
+      joystickVector.y = offsetY / maxTravel;
+      ui.joystickKnob.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+      ui.touchJoystick.dataset.inputX = joystickVector.x.toFixed(3);
+      ui.touchJoystick.dataset.inputY = joystickVector.y.toFixed(3);
+      ui.touchJoystick.dataset.lastInputX = ui.touchJoystick.dataset.inputX;
+      ui.touchJoystick.dataset.lastInputY = ui.touchJoystick.dataset.inputY;
+    }
+
+    function resetJoystick() {
+      joystickPointerId = null;
+      joystickVector.x = 0;
+      joystickVector.y = 0;
+      ui.touchJoystick.classList.remove("active");
+      ui.joystickKnob.style.transform = "translate(0px, 0px)";
+      ui.touchJoystick.dataset.inputX = "0";
+      ui.touchJoystick.dataset.inputY = "0";
+    }
 
     function showLoadingScreen() {
       let tipIndex = 0;
@@ -230,6 +395,7 @@
         state = "start";
         ui.loading.classList.add("hidden");
         ui.start.classList.remove("hidden");
+        ui.achievementsButton.disabled = false;
       }, 2300);
     }
 
@@ -258,6 +424,9 @@
       };
       messageTimer = 0;
       newHighscoreAnnounced = false;
+      pausedFromState = "playing";
+      lastDifficultyPhase = 1;
+      lastRunMedal = medals[0];
       ui.stage.classList.remove("new-highscore", "power-double", "power-shield", "power-turbo");
       gina.x = WIDTH / 2;
       gina.y = HEIGHT / 2;
@@ -317,7 +486,7 @@
       ui.finalSurvival.textContent = `Überlebte Zeit: ${Math.floor(stats.survivalTime)}s`;
       ui.finalCombo.textContent = `Beste Combo: x${stats.bestCombo}`;
       ui.finalNearMiss.textContent = `Knapp vorbei: ${stats.nearMisses}`;
-      ui.finalBest.textContent = `Bestes Ergebnis aller Zeiten: ${highscore}`;
+      ui.finalBugsAvoided.textContent = `Ausgewichene Bugs: ${stats.bugsAvoided}`;
       ui.gameOver.classList.remove("hidden");
     }
 
@@ -333,17 +502,35 @@
     }
 
     function togglePause() {
-      if (state === "playing") {
-        state = "paused";
-        ui.pause.classList.remove("hidden");
+      if (state === "countdown" || state === "playing") {
+        pauseForInterruption();
         return;
       }
 
       if (state === "paused") {
+        if (pausedFromState === "countdown") {
+          ui.pause.classList.add("hidden");
+          state = "countdown";
+          startCountdown();
+          return;
+        }
+
         state = "playing";
         ui.pause.classList.add("hidden");
         lastFrame = performance.now();
       }
+    }
+
+    function pauseForInterruption() {
+      if (state !== "playing" && state !== "countdown") return;
+
+      pausedFromState = state;
+      clearTimeout(countdownTimeout);
+      state = "paused";
+      keys.clear();
+      resetJoystick();
+      ui.countdown.classList.add("hidden");
+      ui.pause.classList.remove("hidden");
     }
 
     function hideAllOverlays() {
@@ -352,6 +539,76 @@
       ui.countdown.classList.add("hidden");
       ui.pause.classList.add("hidden");
       ui.gameOver.classList.add("hidden");
+      ui.achievements.classList.add("hidden");
+    }
+
+    function openAchievementOverview() {
+      if (state === "loading" || state === "achievements") return;
+
+      achievementReturnState = state;
+
+      if (state === "countdown") {
+        clearTimeout(countdownTimeout);
+        ui.countdown.classList.add("hidden");
+      }
+
+      if (state === "playing" || state === "countdown") {
+        keys.clear();
+        resetJoystick();
+      }
+
+      state = "achievements";
+      renderAchievementOverview();
+      ui.achievements.classList.remove("hidden");
+      ui.closeAchievementsButton.focus();
+    }
+
+    function closeAchievementOverview() {
+      if (state !== "achievements") return;
+
+      ui.achievements.classList.add("hidden");
+
+      if (achievementReturnState === "countdown") {
+        state = "countdown";
+        startCountdown();
+      } else {
+        state = achievementReturnState;
+        if (state === "playing") lastFrame = performance.now();
+      }
+
+      ui.achievementsButton.focus();
+    }
+
+    function renderAchievementOverview() {
+      const entries = Object.entries(achievements);
+      const unlockedCount = entries.filter(([key]) => unlockedAchievements[key]).length;
+
+      ui.achievementSummary.textContent =
+        `${unlockedCount} von ${entries.length} freigeschaltet`;
+      ui.achievementsButton.textContent =
+        `🏅 Erfolge ${unlockedCount}/${entries.length}`;
+      ui.achievementList.innerHTML = "";
+
+      entries.forEach(([key, achievement]) => {
+        const unlocked = Boolean(unlockedAchievements[key]);
+        const progress = Math.min(achievement.target, Math.max(0, achievement.progress()));
+        const percentage = Math.round((progress / achievement.target) * 100);
+        const card = document.createElement("article");
+
+        card.className = `achievement-card ${unlocked ? "unlocked" : "locked"}`;
+        card.innerHTML = `
+          <div class="achievement-card-header">
+            <span class="achievement-icon" aria-hidden="true">${achievement.icon}</span>
+            <strong>${achievement.title}</strong>
+            <span class="achievement-state">${unlocked ? "✓ Freigeschaltet" : `${progress}/${achievement.target}`}</span>
+          </div>
+          <p>${achievement.description}</p>
+          <div class="achievement-progress" aria-hidden="true">
+            <span style="width: ${unlocked ? 100 : percentage}%"></span>
+          </div>
+        `;
+        ui.achievementList.appendChild(card);
+      });
     }
 
     function updateHud() {
@@ -361,6 +618,7 @@
       updateHighscoreDisplay();
       ui.coffeeCount.textContent = `Kaffee: ${stats.coffee}`;
       ui.cookieCount.textContent = `Cookies: ${stats.cookies}`;
+      updateMedalProgress();
       const activeNames = [];
       if (activePowerups.doublePoints > 0) activeNames.push(`2x ${Math.ceil(activePowerups.doublePoints)}s`);
       if (activePowerups.shield > 0) activeNames.push(`Schutz ${Math.ceil(activePowerups.shield)}s`);
@@ -378,6 +636,25 @@
       ui.stage.classList.toggle("power-double", activePowerups.doublePoints > 0);
       ui.stage.classList.toggle("power-shield", activePowerups.shield > 0);
       ui.stage.classList.toggle("power-turbo", activePowerups.turbo > 0);
+    }
+
+    function updateMedalProgress() {
+      const earnedMedal = getMedalForScore(score);
+      const nextMedal = medals.find((medal) => score < medal.minScore);
+
+      if (nextMedal) {
+        ui.medalProgress.textContent =
+          `${nextMedal.emoji} ${score}/${nextMedal.minScore} bis ${nextMedal.title}`;
+      } else {
+        ui.medalProgress.textContent = "💎 Höchste Medaille erreicht";
+      }
+
+      if (state === "playing" && earnedMedal.minScore > lastRunMedal.minScore) {
+        lastRunMedal = earnedMedal;
+        showToast(`Neue Medaille: ${formatMedal(earnedMedal)}`, true);
+        playAchievementSound();
+        burst(gina.x, gina.y, "#ffd56f", 26);
+      }
     }
 
     function gameLoop(now) {
@@ -399,6 +676,7 @@
       timeLeft -= delta;
       stats.survivalTime = GAME_SECONDS - timeLeft;
       messageTimer -= delta;
+      updateDifficultyFeedback();
 
       if (timeLeft <= 0) {
         timeLeft = 0;
@@ -422,20 +700,21 @@
     }
 
     function updatePlayer(delta) {
-      let dx = 0;
-      let dy = 0;
+      let dx = joystickVector.x;
+      let dy = joystickVector.y;
 
-      if (isDown("arrowleft", "a", "left")) dx -= 1;
-      if (isDown("arrowright", "d", "right")) dx += 1;
-      if (isDown("arrowup", "w", "up")) dy -= 1;
-      if (isDown("arrowdown", "s", "down")) dy += 1;
+      if (isDown("arrowleft", "a")) dx -= 1;
+      if (isDown("arrowright", "d")) dx += 1;
+      if (isDown("arrowup", "w")) dy -= 1;
+      if (isDown("arrowdown", "s")) dy += 1;
 
       if (dx !== 0 || dy !== 0) {
         const length = Math.hypot(dx, dy);
+        const movementScale = length > 1 ? 1 / length : 1;
         const speed = activePowerups.turbo > 0 ? gina.baseSpeed * 1.48 : gina.baseSpeed;
         gina.speed = speed;
-        gina.x += (dx / length) * speed * delta;
-        gina.y += (dy / length) * speed * delta;
+        gina.x += dx * movementScale * speed * delta;
+        gina.y += dy * movementScale * speed * delta;
       }
 
       gina.x = clamp(gina.x, gina.r, WIDTH - gina.r);
@@ -459,46 +738,87 @@
       }
     }
 
-    function isDown(primary, alternative, touch) {
-      return keys.has(primary) || keys.has(alternative) || touchKeys.has(touch);
+    function isDown(primary, alternative) {
+      return keys.has(primary) || keys.has(alternative);
     }
 
     function updateSpawns(delta) {
       itemSpawnTimer -= delta;
       bugSpawnTimer -= delta;
+      const difficulty = getDifficulty();
 
       if (itemSpawnTimer <= 0 && items.length < 11) {
         spawnItem();
         itemSpawnTimer = random(0.45, 0.95);
       }
 
-      if (bugSpawnTimer <= 0 && bugs.length < 8) {
-        spawnBug();
-        bugSpawnTimer = random(1.4, 2.2);
+      if (bugSpawnTimer <= 0 && bugs.length < difficulty.maxBugs) {
+        spawnBug(difficulty);
+        bugSpawnTimer = random(difficulty.spawnMin, difficulty.spawnMax);
       }
     }
 
     function updateBugs(delta) {
       bugs = bugs.filter((bug) => {
         bug.age += delta;
+
+        if (bug.type === "hunter") {
+          const currentAngle = Math.atan2(bug.vy, bug.vx);
+          const targetAngle = Math.atan2(gina.y - bug.y, gina.x - bug.x);
+          const angleDifference = Math.atan2(
+            Math.sin(targetAngle - currentAngle),
+            Math.cos(targetAngle - currentAngle)
+          );
+          const turn = clamp(
+            angleDifference,
+            -bug.turnRate * delta,
+            bug.turnRate * delta
+          );
+          bug.vx = Math.cos(currentAngle + turn) * bug.speed;
+          bug.vy = Math.sin(currentAngle + turn) * bug.speed;
+        }
+
         bug.x += bug.vx * delta;
         bug.y += bug.vy * delta;
-        bug.spin += delta * 5;
+        bug.spin += delta * (bug.type === "sprinter" ? 9 : 5);
 
         if (bug.x < bug.r || bug.x > WIDTH - bug.r) bug.vx *= -1;
         if (bug.y < bug.r + 30 || bug.y > HEIGHT - bug.r) bug.vy *= -1;
 
         bug.x = clamp(bug.x, bug.r, WIDTH - bug.r);
         bug.y = clamp(bug.y, bug.r + 30, HEIGHT - bug.r);
+        updateBugDodgeState(bug);
 
         if (bug.age >= bug.life) {
-          stats.bugsAvoided += 1;
           burst(bug.x, bug.y, "#83d8ff", 8);
           return false;
         }
 
         return true;
       });
+    }
+
+    function updateBugDodgeState(bug) {
+      if (bug.dodgeAwarded || bug.hitPlayer) return;
+
+      const hitDistance = gina.r + bug.r;
+      const currentDistance = distance(gina, bug);
+
+      if (
+        currentDistance > hitDistance &&
+        currentDistance <= hitDistance + BUG_THREAT_MARGIN
+      ) {
+        bug.wasThreatening = true;
+      }
+
+      if (
+        bug.wasThreatening &&
+        currentDistance >= hitDistance + BUG_DODGE_CLEAR_MARGIN
+      ) {
+        bug.dodgeAwarded = true;
+        stats.bugsAvoided += 1;
+        burst(bug.x, bug.y, "#83d8ff", 6);
+      }
     }
 
     function updateParticles(delta) {
@@ -552,8 +872,9 @@
 
       bugs = bugs.filter((bug) => {
         if (distance(gina, bug) < gina.r + bug.r) {
+          bug.hitPlayer = true;
+
           if (activePowerups.shield > 0) {
-            stats.bugsAvoided += 1;
             showToast("Schutz-Heiligenschein: Bug freundlich ignoriert.", false);
             playCollectSound("chip");
             burst(bug.x, bug.y, "#fff4a8", 18);
@@ -656,30 +977,127 @@
               : roll < 0.97
                 ? "shieldHalo"
                 : "turboCoffee";
+      const radius = itemTypes[type].radius;
+      const position = findSafeSpawnPosition({
+        radius,
+        minY: 72,
+        playerClearance: 80,
+        entities: [...items, ...bugs],
+        entityClearance: 12
+      });
+
       items.push({
         type,
-        x: random(38, WIDTH - 38),
-        y: random(72, HEIGHT - 38),
-        r: itemTypes[type].radius,
+        x: position.x,
+        y: position.y,
+        r: radius,
         bob: random(0, Math.PI * 2),
         spin: random(0, Math.PI * 2)
       });
     }
 
-    function spawnBug() {
-      const speed = random(85, 150);
+    function spawnBug(difficulty = getDifficulty()) {
+      const type = chooseBugType(difficulty.phase);
+      const settings = bugTypes[type];
+      const speed = random(settings.minSpeed, settings.maxSpeed) * difficulty.speedMultiplier;
       const angle = random(0, Math.PI * 2);
+      const radius = settings.radius;
+      const position = findSafeSpawnPosition({
+        radius,
+        minY: 96,
+        playerClearance: 120,
+        entities: [...bugs, ...items],
+        entityClearance: 24
+      });
+
       bugs.push({
-        x: random(54, WIDTH - 54),
-        y: random(96, HEIGHT - 54),
-        r: 22,
+        type,
+        x: position.x,
+        y: position.y,
+        r: radius,
+        speed,
+        turnRate: settings.turnRate || 0,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         spin: random(0, Math.PI * 2),
         nearMissAwarded: false,
+        wasThreatening: false,
+        dodgeAwarded: false,
+        hitPlayer: false,
         age: 0,
-        life: random(6.5, 10.5)
+        life: random(settings.minLife, settings.maxLife)
       });
+    }
+
+    function chooseBugType(phase) {
+      if (phase === 1) return "standard";
+
+      const roll = Math.random();
+      if (phase === 2) {
+        if (roll < 0.58) return "standard";
+        if (roll < 0.84) return "sprinter";
+        return "hunter";
+      }
+
+      if (roll < 0.4) return "standard";
+      if (roll < 0.7) return "sprinter";
+      return "hunter";
+    }
+
+    function getDifficulty() {
+      const survivalTime = Math.max(0, GAME_SECONDS - timeLeft);
+      return difficultyStages.reduce(
+        (current, stage) => survivalTime >= stage.startsAt ? stage : current,
+        difficultyStages[0]
+      );
+    }
+
+    function updateDifficultyFeedback() {
+      const difficulty = getDifficulty();
+      ui.stage.dataset.difficultyPhase = String(difficulty.phase);
+
+      if (difficulty.phase <= lastDifficultyPhase) return;
+
+      lastDifficultyPhase = difficulty.phase;
+      showToast(difficulty.message, true);
+      playAchievementSound();
+      burst(gina.x, gina.y, difficulty.phase === 3 ? "#ef4057" : "#ff8a3d", 20);
+    }
+
+    function findSafeSpawnPosition({
+      radius,
+      minY,
+      playerClearance,
+      entities,
+      entityClearance
+    }) {
+      let bestPosition = { x: radius + 16, y: minY };
+      let bestClearance = -Infinity;
+
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        const candidate = {
+          x: random(radius + 16, WIDTH - radius - 16),
+          y: random(minY, HEIGHT - radius - 16),
+          r: radius
+        };
+        const distanceFromPlayer = distance(gina, candidate) - gina.r - radius;
+        const distanceFromEntities = entities.length
+          ? Math.min(...entities.map((entity) => distance(entity, candidate) - entity.r - radius))
+          : Infinity;
+        const clearance = Math.min(
+          distanceFromPlayer - playerClearance,
+          distanceFromEntities - entityClearance
+        );
+
+        if (clearance >= 0) return candidate;
+
+        if (clearance > bestClearance) {
+          bestClearance = clearance;
+          bestPosition = candidate;
+        }
+      }
+
+      return bestPosition;
     }
 
     function burst(x, y, color, amount) {
@@ -1167,33 +1585,65 @@
 
     function drawBugs() {
       bugs.forEach((bug) => {
+        const settings = bugTypes[bug.type] || bugTypes.standard;
+        const scale = bug.r / bugTypes.standard.radius;
+        const bodyWidth = 36 * scale;
+        const bodyHeight = 30 * scale;
+
         ctx.save();
         ctx.translate(bug.x, bug.y);
-        ctx.rotate(Math.sin(bug.spin) * 0.22);
-        ctx.shadowColor = "rgba(239, 64, 87, 0.7)";
+        ctx.rotate(Math.atan2(bug.vy, bug.vx) + Math.sin(bug.spin) * 0.12);
+
+        if (bug.type === "sprinter") {
+          ctx.strokeStyle = "rgba(255, 213, 111, 0.72)";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(-bodyWidth / 2 - 8, -7);
+          ctx.lineTo(-bodyWidth / 2 - 24, -7);
+          ctx.moveTo(-bodyWidth / 2 - 8, 7);
+          ctx.lineTo(-bodyWidth / 2 - 30, 7);
+          ctx.stroke();
+        }
+
+        ctx.shadowColor = settings.glow;
         ctx.shadowBlur = 18;
-        ctx.fillStyle = "rgba(239, 64, 87, 0.2)";
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = settings.color;
         ctx.beginPath();
-        ctx.ellipse(0, 0, 32, 25, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, 32 * scale, 25 * scale, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.globalAlpha = 1;
         ctx.shadowBlur = 10;
-        ctx.fillStyle = "#ef4057";
-        ctx.fillRect(-18, -15, 36, 30);
+        ctx.fillStyle = settings.color;
+        ctx.fillRect(-bodyWidth / 2, -bodyHeight / 2, bodyWidth, bodyHeight);
         ctx.shadowBlur = 0;
-        ctx.fillStyle = "#68131f";
-        ctx.fillRect(-12, -8, 24, 5);
-        ctx.fillRect(-12, 3, 24, 5);
-        ctx.strokeStyle = "#ffb9c2";
-        ctx.lineWidth = 2;
+
+        if (bug.type === "hunter") {
+          ctx.fillStyle = "#f7f1ff";
+          ctx.beginPath();
+          ctx.arc(4 * scale, 0, 7 * scale, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#30134f";
+          ctx.beginPath();
+          ctx.arc(7 * scale, 0, 3 * scale, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = bug.type === "sprinter" ? "#74300d" : "#68131f";
+          ctx.fillRect(-12 * scale, -8 * scale, 24 * scale, 5 * scale);
+          ctx.fillRect(-12 * scale, 3 * scale, 24 * scale, 5 * scale);
+        }
+
+        ctx.strokeStyle = bug.type === "hunter" ? "#e1c8ff" : "#ffcfb9";
+        ctx.lineWidth = Math.max(2, 2 * scale);
         ctx.beginPath();
-        ctx.moveTo(-12, -15);
-        ctx.lineTo(-20, -25);
-        ctx.moveTo(12, -15);
-        ctx.lineTo(20, -25);
-        ctx.moveTo(-16, 10);
-        ctx.lineTo(-26, 18);
-        ctx.moveTo(16, 10);
-        ctx.lineTo(26, 18);
+        ctx.moveTo(-12 * scale, -15 * scale);
+        ctx.lineTo(-20 * scale, -25 * scale);
+        ctx.moveTo(12 * scale, -15 * scale);
+        ctx.lineTo(20 * scale, -25 * scale);
+        ctx.moveTo(-16 * scale, 10 * scale);
+        ctx.lineTo(-26 * scale, 18 * scale);
+        ctx.moveTo(16 * scale, 10 * scale);
+        ctx.lineTo(26 * scale, 18 * scale);
         ctx.stroke();
         ctx.restore();
       });
@@ -1362,7 +1812,6 @@
       LEGACY_HIGHSCORE_KEYS.forEach((key) => localStorage.removeItem(key));
       updateHighscoreDisplay();
       ui.finalHighscore.textContent = "Highscore: 0";
-      ui.finalBest.textContent = "Bestes Ergebnis aller Zeiten: 0";
       showToast("Highscore gelöscht.", false);
     }
 
@@ -1383,11 +1832,19 @@
       localStorage.setItem(ACHIEVEMENT_KEY, JSON.stringify(unlockedAchievements));
     }
 
+    function resetAchievements() {
+      unlockedAchievements = {};
+      localStorage.removeItem(ACHIEVEMENT_KEY);
+      renderAchievementOverview();
+      showToast("Achievements zurückgesetzt.", false);
+    }
+
     function checkAchievements() {
       Object.entries(achievements).forEach(([key, achievement]) => {
         if (!unlockedAchievements[key] && achievement.done()) {
           unlockedAchievements[key] = true;
           saveAchievements();
+          renderAchievementOverview();
           showToast(`Achievement: ${achievement.title}`, true);
           playAchievementSound();
         }

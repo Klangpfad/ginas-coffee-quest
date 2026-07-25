@@ -117,6 +117,23 @@
       text-shadow: 0 2px 10px rgba(0, 0, 0, 0.38);
     }
 
+    .achievement-overview-button {
+      width: 100%;
+      min-height: 36px;
+      margin-top: 12px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 213, 111, 0.52);
+      color: #fff7c9;
+      background: rgba(255, 213, 111, 0.12);
+      box-shadow: none;
+      font-size: 0.88rem;
+    }
+
+    .achievement-overview-button:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
     .topbar {
       position: relative;
       z-index: 1;
@@ -176,9 +193,19 @@
 
     #coffeeCount,
     #cookieCount,
-    #powerStatus {
+    #powerStatus,
+    #medalProgress {
       color: rgba(255, 255, 255, 0.84);
       font-weight: 600;
+    }
+
+    #medalProgress {
+      min-width: 205px;
+      border-color: rgba(255, 213, 111, 0.48);
+      color: #fff7c9;
+      background:
+        linear-gradient(90deg, rgba(255, 213, 111, 0.17), transparent),
+        rgba(0, 0, 0, 0.22);
     }
 
     .hud .wide {
@@ -291,6 +318,149 @@
 
     .overlay.hidden {
       display: none;
+    }
+
+    #achievementsScreen {
+      z-index: 7;
+      background: rgba(8, 10, 18, 0.78);
+    }
+
+    .achievements-screen {
+      border-color: rgba(255, 213, 111, 0.76);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255, 213, 111, 0.2), transparent 11rem),
+        var(--panel);
+    }
+
+    .achievement-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 38px;
+      min-width: 38px;
+      min-height: 38px;
+      padding: 0;
+      border: 1px solid rgba(37, 31, 45, 0.18);
+      color: #62556f;
+      background: rgba(255, 255, 255, 0.62);
+      box-shadow: none;
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+
+    .achievement-heading-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 8px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: rgba(255, 213, 111, 0.22);
+      box-shadow: 0 0 24px rgba(255, 213, 111, 0.28);
+      font-size: 2rem;
+    }
+
+    .achievement-summary {
+      color: #7a5516;
+      font-weight: 800;
+    }
+
+    .achievement-list {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-auto-rows: 1fr;
+      gap: 9px;
+      margin: 14px 0;
+    }
+
+    .achievement-card {
+      grid-column: span 2;
+      display: flex;
+      flex-direction: column;
+      padding: 11px;
+      border: 1px solid rgba(37, 31, 45, 0.14);
+      border-radius: 8px;
+      background: rgba(37, 31, 45, 0.05);
+      text-align: left;
+    }
+
+    .achievement-card:nth-last-child(2) {
+      grid-column: 2 / span 2;
+    }
+
+    .achievement-card:last-child {
+      grid-column: 4 / span 2;
+    }
+
+    .achievement-card.unlocked {
+      border-color: rgba(255, 185, 55, 0.62);
+      background: rgba(255, 213, 111, 0.16);
+    }
+
+    .achievement-card.locked {
+      opacity: 0.78;
+    }
+
+    .achievement-card-header {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: center;
+      gap: 4px 8px;
+    }
+
+    .achievement-icon {
+      position: absolute;
+      bottom: -3px;
+      left: 0;
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .achievement-card-header strong {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      text-align: center;
+    }
+
+    .achievement-state {
+      grid-column: 1;
+      grid-row: 2;
+      text-align: center;
+      color: #62556f;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .achievement-card.unlocked .achievement-state {
+      color: #876010;
+    }
+
+    .achievement-card p {
+      flex: 1;
+      min-height: 2.5em;
+      margin: 8px 0;
+      color: #62556f;
+      font-size: 0.84rem;
+      line-height: 1.3;
+    }
+
+    .achievement-progress {
+      height: 6px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(37, 31, 45, 0.13);
+    }
+
+    .achievement-progress span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--gold));
+    }
+
+    .achievement-actions {
+      margin-top: 0;
     }
 
     .countdown-overlay {
@@ -572,45 +742,80 @@
       animation: loadWiggle 1s ease-in-out infinite alternate;
     }
 
-    .touch-controls {
+    .touch-joystick {
       position: absolute;
-      right: 12px;
-      bottom: 12px;
+      right: 14px;
+      bottom: 14px;
       display: none;
-      grid-template-columns: repeat(3, 42px);
-      grid-template-rows: repeat(3, 42px);
-      gap: 6px;
-      opacity: 0.86;
+      width: 136px;
+      height: 136px;
+      z-index: 4;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
-    .touch-controls button {
-      min-width: 42px;
-      min-height: 42px;
-      padding: 0;
-      border: 1px solid rgba(255, 255, 255, 0.48);
-      background: rgba(255, 255, 255, 0.2);
-      box-shadow: none;
-      backdrop-filter: blur(5px);
+    .joystick-base {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.54);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at center, rgba(255, 255, 255, 0.18) 0 8%, transparent 9%),
+        rgba(37, 31, 45, 0.34);
+      box-shadow:
+        inset 0 0 20px rgba(255, 255, 255, 0.12),
+        0 8px 24px rgba(37, 31, 45, 0.2);
+      backdrop-filter: blur(6px);
     }
 
-    .touch-controls [data-dir="up"] {
-      grid-column: 2;
-      grid-row: 1;
+    .joystick-base::before,
+    .joystick-base::after {
+      position: absolute;
+      content: "";
+      background: rgba(255, 255, 255, 0.15);
+      pointer-events: none;
     }
 
-    .touch-controls [data-dir="left"] {
-      grid-column: 1;
-      grid-row: 2;
+    .joystick-base::before {
+      top: 50%;
+      left: 12px;
+      width: calc(100% - 24px);
+      height: 1px;
     }
 
-    .touch-controls [data-dir="right"] {
-      grid-column: 3;
-      grid-row: 2;
+    .joystick-base::after {
+      top: 12px;
+      left: 50%;
+      width: 1px;
+      height: calc(100% - 24px);
     }
 
-    .touch-controls [data-dir="down"] {
-      grid-column: 2;
-      grid-row: 3;
+    .joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 58px;
+      height: 58px;
+      margin: -29px 0 0 -29px;
+      border: 2px solid rgba(255, 255, 255, 0.74);
+      border-radius: 50%;
+      background: linear-gradient(145deg, rgba(255, 238, 166, 0.94), rgba(255, 142, 214, 0.9));
+      box-shadow:
+        inset 0 4px 10px rgba(255, 255, 255, 0.34),
+        0 5px 14px rgba(37, 31, 45, 0.28);
+      transform: translate(0, 0);
+      transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+      pointer-events: none;
+    }
+
+    .touch-joystick.active .joystick-knob {
+      box-shadow:
+        inset 0 3px 8px rgba(255, 255, 255, 0.3),
+        0 3px 10px rgba(37, 31, 45, 0.3);
+      transition: none;
     }
 
     .toast-stack {
@@ -622,7 +827,7 @@
       gap: 8px;
       transform: translateX(-50%);
       pointer-events: none;
-      z-index: 4;
+      z-index: 8;
     }
 
     .toast {
@@ -803,6 +1008,11 @@
         grid-column: span 3;
       }
 
+      #medalProgress {
+        grid-column: span 9;
+        min-width: 0;
+      }
+
       .hud button {
         grid-column: span 3;
         min-height: 34px;
@@ -810,15 +1020,77 @@
       }
 
       canvas {
-        aspect-ratio: 4 / 5;
+        aspect-ratio: 3 / 4;
       }
 
-      .score-list {
+      #startScreen {
+        padding: 10px;
+      }
+
+      #startScreen .screen {
+        padding: 14px;
+      }
+
+      #startScreen .logo {
+        width: 68px;
+        height: 68px;
+        margin-bottom: 8px;
+        font-size: 1.75rem;
+      }
+
+      #startScreen .screen h2 {
+        margin-bottom: 6px;
+        font-size: 1.35rem;
+      }
+
+      #startScreen .screen p {
+        margin: 6px 0;
+        font-size: 0.88rem;
+      }
+
+      #startScreen .score-list {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        margin: 8px 0;
+        font-size: 0.86rem;
+      }
+
+      #startScreen .score-list div {
+        min-height: 44px;
+        padding: 5px 6px;
+      }
+
+      #startScreen .button-row {
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      #achievementsScreen {
+        padding: 10px;
+      }
+
+      .achievements-screen {
+        padding: 14px;
+      }
+
+      .achievement-heading-icon {
+        width: 52px;
+        height: 52px;
+        font-size: 1.65rem;
+      }
+
+      .achievement-list {
         grid-template-columns: 1fr;
       }
 
-      .touch-controls {
-        display: grid;
+      .achievement-card,
+      .achievement-card:nth-last-child(2),
+      .achievement-card:last-child {
+        grid-column: auto;
+      }
+
+      .touch-joystick {
+        display: block;
       }
 
       .power-strip {

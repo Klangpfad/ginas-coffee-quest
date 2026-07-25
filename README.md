@@ -1,4 +1,4 @@
-# Gina's Coffee Quest 3.0 ☕👻
+# Gina's Coffee Quest 3.3 ☕👻
 
 A small arcade coffee game built with HTML, CSS and JavaScript.
 
@@ -10,9 +10,12 @@ Collect coffee, cookies and power-ups, avoid bugs, build combos and unlock medal
 * 🍪 Cookie bonus items
 * ⚡ Power-Ups (Turbo, Protection, Double Score)
 * 🏆 Highscore tracking
-* 💎 Medal & achievement system
+* 💎 Medal system & persistent achievement overview
 * 🎯 Near-Miss bonus
 * 📈 Combo scoring
+* 📶 Three-stage difficulty curve
+* 🐛 Standard, sprinter and hunter bugs
+* 🏅 Live medal progress
 * 📊 Detailed end-of-game statistics
 * 🎵 Music support
 * 📱 Desktop and mobile friendly
@@ -26,7 +29,7 @@ Collect coffee, cookies and power-ups, avoid bugs, build combos and unlock medal
 
 ### Mobile
 
-* Touch controls
+* Virtual joystick = Move
 
 ## Medals
 
@@ -40,7 +43,7 @@ Collect coffee, cookies and power-ups, avoid bugs, build combos and unlock medal
 
 ## Play Online
 
-https://runlevel-labs.github.io/ginas-coffee-quest/
+https://klangpfad.github.io/ginas-coffee-quest/
 
 ## Credits
 
